@@ -17,24 +17,29 @@ movie_similarity = cosine_similarity(ratings_pivot)
 
 movie_titles = list(movies['title'])
 
-def get_recommendations(movie_title, movie_similarity, mean_ratings):
+def get_recommendations(movie_title, movie_similarity, mean_ratings, movies):
     idx = mean_ratings[mean_ratings['title'] == movie_title].index[0]
     sim_scores = list(enumerate(movie_similarity[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_indices = [i[0] for i in sim_scores[1:11]]
-    return mean_ratings.iloc[sim_indices][['title', 'rating', 'movieId']]
+    sim_indices = [i[0] for i in sim_scores[1:21]]
+    recommended_movies = mean_ratings.iloc[sim_indices][['title', 'rating', 'movieId']]
+    recommended_movies = pd.merge(recommended_movies, movies[['movieId', 'genres']], on='movieId')
+    return recommended_movies
 
 def recommend_movies():
     movie_title = movie_combobox.get()
-    recommended_movies = get_recommendations(movie_title, movie_similarity, mean_ratings)
+    recommended_movies = get_recommendations(movie_title, movie_similarity, mean_ratings, movies)
     movie_table.delete(*movie_table.get_children())
     for i, (index, row) in enumerate(recommended_movies.iterrows(), start=1):
         imdb_id = links[links['movieId'] == row['movieId']]['imdbId'].iloc[0]
-        movie_table.insert('', tk.END, values=(i, row['title'], f"{row['rating']:.2f}", imdb_id))
+        genres = row['genres']
+        movie_table.insert('', tk.END, values=(i, row['title'], f"{row['rating']:.2f}", genres, imdb_id))
+
+
 
 window = tk.Tk()
 window.title('Movie Recommendation System')
-window.geometry('600x400')
+window.geometry('600x600')
 
 movie_label = ttk.Label(window, text='Select a movie:')
 movie_label.pack(pady=10)
@@ -49,21 +54,23 @@ def update_movie_list(event=None):
 movie_combobox = ttk.Combobox(window, width=50)
 movie_combobox.pack()
 
-# bind the update_movie_list function to the combobox to trigger an update on each keypress
 movie_combobox.bind("<KeyRelease>", update_movie_list)
 
 
 recommend_button = ttk.Button(window, text='Recommend Movies', command=recommend_movies)
 recommend_button.pack(pady=10)
 
-movie_table = ttk.Treeview(window, columns=('SL','Movie', 'Rating'), show='headings', height=10)
+movie_table = ttk.Treeview(window, columns=('SL', 'Movie', 'Rating', 'Genres'), show='headings', height=20)
 movie_table.heading('SL', text='SL')
 movie_table.heading('Movie', text='Movie')
 movie_table.heading('Rating', text='Rating')
+movie_table.heading('Genres', text='Genres')
 movie_table.pack(pady=10)
 movie_table.column('SL', width=10, anchor='center')
-movie_table.column('Movie', width=400, anchor='center')
+movie_table.column('Movie', width=300, anchor='center')
 movie_table.column('Rating', width=80, anchor='center')
+movie_table.column('Genres', width=200, anchor='center')
+
 
 def clear_movies():
     movie_combobox.set('')
