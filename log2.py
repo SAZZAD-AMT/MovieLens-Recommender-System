@@ -134,7 +134,7 @@ def open_movie_recommendation_system(user_id):
     import csv
     from tkinter import messagebox
     
-    def save_rating(movie_title, rating, rating_window):
+    def save_rating(movie_title, rating):
         try:
             rating = float(rating)
             if rating < 1 or rating > 5:
