@@ -125,35 +125,57 @@ def open_movie_recommendation_system(user_id):
         
         submit_button = ttk.Button(rating_window, text="Submit", command=lambda: save_rating(movie_title, rating_entry.get()))
         submit_button.pack(pady=10)
+        
 
         rating_window.mainloop()
         
-    def save_rating(movie_title, rating):
         
+        
+    import csv
+    from tkinter import messagebox
+    
+    def save_rating(movie_title, rating, rating_window):
         try:
             rating = float(rating)
-            if rating >= 1 or rating <= 5:
+            if rating < 1 or rating > 5:
                 raise ValueError()
-            
-            movie_id = mean_ratings[mean_ratings['title'] == movie_title]['movieId'].iloc[0]
-            
-            new_rating = pd.DataFrame({'userId': [999], 'movieId': [movie_id], 'rating': [rating], 'timestamp': [int(time.time())]})
-            ratings = ratings.append(new_rating, ignore_index=True)
-            
-            ratings_pivot = movie_ratings.pivot_table(index='userId', columns='title', values='rating').fillna(0)
-            
-            movie_similarity = cosine_similarity(ratings_pivot)
-            
-            recommend_movies()
-            
-            tk.messagebox.showinfo("Success", "Rating saved successfully!")
-        except (ValueError, IndexError):
-            tk.messagebox.showerror("Error", "Invalid rating or movie not found!")
 
+            movie_id = mean_ratings[mean_ratings['title'] == movie_title]['movieId'].iloc[0]
+
+            with open('user_ratings.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['User_ID'] == str(user_id) and row['Movie'] == movie_title:
+                        messagebox.showerror("Error", "You have already rated this movie.")
+                        return
+
+            new_rating = {'User_ID': user_id, 'Movie': movie_title, 'Rating': rating}
+
+            with open('user_ratings.csv', 'a', newline='') as file:
+                fieldnames = ['User_ID', 'Movie', 'Rating']
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+                # Write header if the file is empty
+                if file.tell() == 0:
+                    writer.writeheader()
+
+                writer.writerow(new_rating)
+                
+            # Rest of the code...
+            ratings = ratings.append(new_rating, ignore_index=True)
+            ratings_pivot = movie_ratings.pivot_table(index='userId', columns='title', values='rating').fillna(0)
+            movie_similarity = cosine_similarity(ratings_pivot)
+            recommend_movies()
+
+            messagebox.showinfo("Success", "Rating saved successfully!")
+        except (ValueError, IndexError):
+            messagebox.showerror("Error", "Invalid rating or movie not found!")
+        
+        
+     
+     
         
     window = tk.Tk()
-
-
 
     window.title(f'Movie Recommendation System-------User ID: {user_id}')
     window.geometry('600x600')
@@ -199,10 +221,6 @@ def open_movie_recommendation_system(user_id):
 
     window.mainloop()
 
-
-
-    
-    
 
 # Start the login window
 login_window.mainloop()
