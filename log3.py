@@ -21,13 +21,13 @@ user_id_entry.pack()
 def check_user_id(user_id):
     with open('ratings.csv', 'r') as file:
         reader = csv.reader(file)
-        next(reader)  # Skip the header row
+        next(reader)
         for row in reader:
             if row[0] == user_id:
                 return True
     return False
 
-def login():
+def login(event=None):
     user_id = user_id_entry.get()
     
     if check_user_id(user_id):
@@ -39,9 +39,9 @@ def login():
 error_label = ttk.Label(login_window, text='', foreground='red')
 error_label.pack()
 
+login_window.bind('<Return>', login)
 login_button = ttk.Button(login_window, text='Login', command=login)
 login_button.pack(pady=10)
-
 
 
 def open_movie_recommendation_system(user_id):
@@ -65,7 +65,13 @@ def open_movie_recommendation_system(user_id):
     movie_titles = list(movies['title'])
 
     def get_recommendations(movie_title, movie_similarity, mean_ratings, movies, genres):
+        
+        if movie_title not in mean_ratings['title'].values:
+            print(f"Movie '{movie_title}' not found in the database.")
+            return pd.DataFrame()  # Return an empty DataFrame
+
         idx = mean_ratings[mean_ratings['title'] == movie_title].index[0]
+        print(idx)
         sim_scores = list(enumerate(movie_similarity[idx]))
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
         sim_indices = [i[0] for i in sim_scores[1:21]]
@@ -86,12 +92,7 @@ def open_movie_recommendation_system(user_id):
         selected_movie = movie_listbox.get(tk.ACTIVE)
         movie_entry.delete(0, tk.END)
         movie_entry.insert(tk.END, selected_movie)
-        suggest_movies()
-        recommend_movies()
-        
-
-        
-        
+        recommend_movies()        
 
     def recommend_movies():
         
@@ -105,15 +106,12 @@ def open_movie_recommendation_system(user_id):
             genres = row['genres']
             movie_table.insert('', tk.END, values=(row['title'], f"{row['rating']:.2f}", genres, imdb_id))
       
-        
-
     def refresh_movies():
         recommend_movies()
-        
-        
+            
     def rate_movie():
         selected_movie = movie_table.selection()
-        if not selected_movie:  # If no row is selected
+        if not selected_movie: 
             return
         movie_info = movie_table.item(selected_movie)
         movie_title = movie_info['values'][0]
@@ -135,10 +133,7 @@ def open_movie_recommendation_system(user_id):
         submit_button = ttk.Button(rating_window, text="Submit", command=lambda: save_rating(movie_title, rating_entry.get()))
         submit_button.pack(pady=10)
         
-
-        rating_window.mainloop()
-        
-        
+        rating_window.mainloop()     
         
     import csv
     from tkinter import messagebox
@@ -164,13 +159,11 @@ def open_movie_recommendation_system(user_id):
                 fieldnames = ['User_ID', 'Movie', 'Rating']
                 writer = csv.DictWriter(file, fieldnames=fieldnames)
 
-                # Write header if the file is empty
                 if file.tell() == 0:
                     writer.writeheader()
 
                 writer.writerow(new_rating)
                 
-            # Rest of the code...
             ratings = ratings.append(new_rating, ignore_index=True)
             ratings_pivot = movie_ratings.pivot_table(index='userId', columns='title', values='rating').fillna(0)
             movie_similarity = cosine_similarity(ratings_pivot)
@@ -179,8 +172,7 @@ def open_movie_recommendation_system(user_id):
             messagebox.showinfo("Success", "Rating saved successfully!")
         except (ValueError, IndexError):
             messagebox.showerror("Error", "Invalid rating or movie not found!")
-        
-        
+             
     window = tk.Tk()
 
     window.title(f'Movie Recommendation System-------User ID: {user_id}')
@@ -192,6 +184,7 @@ def open_movie_recommendation_system(user_id):
     movie_entry = ttk.Entry(window, width=50)
     movie_entry.pack()
     movie_entry.bind("<KeyRelease>", suggest_movies)
+    movie_entry.bind('<Return>', recommend_movies)
 
     movie_label = ttk.Label(window, text='Suggest Movies: ')
     movie_label.pack(pady=10)
@@ -201,6 +194,7 @@ def open_movie_recommendation_system(user_id):
     movie_listbox.bind("<ButtonRelease-1>", select_movie)
     movie_listbox.bind("<<ListboxSelect>>", select_movie,recommend_movies)
     genre_combobox = ttk.Combobox(window, width=50)
+    movie_listbox.bind('<<ListboxSelect>>', select_movie)
 
     refresh_button = ttk.Button(window, text="Refresh", command=refresh_movies)
     refresh_button.pack(pady=10,anchor='e')
@@ -208,7 +202,6 @@ def open_movie_recommendation_system(user_id):
     movie_table = ttk.Label(window, text='Recommended Movies: ')
     movie_table.pack(pady=10)
     movie_table = ttk.Treeview(window, columns=('Movie', 'Rating', 'Genres'), show='headings', height=20)
-    
     
     movie_table.bind("<Double-1>", lambda e: rate_movie())
 
@@ -221,9 +214,7 @@ def open_movie_recommendation_system(user_id):
     movie_table.column('Rating', width=80, anchor='center')
     movie_table.column('Genres', width=200, anchor='center')
     
-
     window.mainloop()
 
 
-# Start the login window
 login_window.mainloop()
