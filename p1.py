@@ -1,155 +1,62 @@
-import pandas as pd
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 import tkinter as tk
 from tkinter import ttk
-import time
 
-movies = pd.read_csv('movies.csv')
-ratings = pd.read_csv('ratings.csv')
-links = pd.read_csv('links.csv')
-tags = pd.read_csv('tags.csv')
+# Create a custom style
+style = ttk.Style()
+style.configure("TLabel", 
+                background="lightblue", 
+                foreground="black", 
+                font=("Helvetica", 16), 
+                padding=10)
+style.configure("TButton", 
+                background="lightgreen", 
+                foreground="black", 
+                font=("Helvetica", 16), 
+                padding=10)
+style.configure("TEntry", 
+                background="white", 
+                foreground="black", 
+                font=("Helvetica", 16))
+style.configure("TListbox",
+                background="white",
+                foreground="black",
+                font=("Helvetica", 12))
+style.configure("Treeview",
+                background="white",
+                foreground="black",
+                font=("Helvetica", 12))
 
-movie_ratings = pd.merge(movies, ratings, on='movieId')
-mean_ratings = movie_ratings.groupby(['movieId', 'title'])['rating'].mean().reset_index()
-ratings_pivot = movie_ratings.pivot_table(index='userId', columns='title', values='rating').fillna(0)
-print(ratings_pivot)
-movie_similarity = cosine_similarity(ratings_pivot)
-
-movie_titles = list(movies['title'])
-
-def get_recommendations(movie_title, movie_similarity, mean_ratings, movies, genres):
-    idx = mean_ratings[mean_ratings['title'] == movie_title].index[0]
-    sim_scores = list(enumerate(movie_similarity[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_indices = [i[0] for i in sim_scores[1:21]]
-    recommended_movies = mean_ratings.iloc[sim_indices][['title', 'rating', 'movieId']]
-    recommended_movies = pd.merge(recommended_movies, movies[['movieId', 'genres']], on='movieId')
-    recommended_movies = recommended_movies[recommended_movies['genres'].str.contains(genres)]
-    return recommended_movies
-
-def suggest_movies(event=None):
-    search_query = movie_entry.get().lower()
-    filtered_movies = [movie for movie in movie_titles if search_query in movie.lower()]
-    movie_listbox.delete(0, tk.END)
-    for movie in filtered_movies:
-        movie_listbox.insert(tk.END, movie)
-    recommend_movies() 
-
-def select_movie(event):
-    selected_movie = movie_listbox.get(tk.ACTIVE)
-    movie_entry.delete(0, tk.END)
-    movie_entry.insert(tk.END, selected_movie)
-    suggest_movies()
-    recommend_movies()
-    
-
-def recommend_movies():
-    movie_title = movie_entry.get()
-    genres = genre_combobox.get()
-    recommended_movies = get_recommendations(movie_title, movie_similarity, mean_ratings, movies, genres)
-    movie_table.delete(*movie_table.get_children())
-    for i, (index, row) in enumerate(recommended_movies.iterrows(), start=1):
-        imdb_id = links[links['movieId'] == row['movieId']]['imdbId'].iloc[0]
-        genres = row['genres']
-        movie_table.insert('', tk.END, values=(row['title'], f"{row['rating']:.2f}", genres, imdb_id))
-
-def refresh_movies():
-    recommend_movies()
-    
-def reset_movies():
-    movie_entry.delete(0, tk.END)
-    genre_combobox.set('')
-    movie_table.delete(*movie_table.get_children())
-    movie_listbox.delete(0, tk.END)
-    
-def rate_movie():
-    selected_movie = movie_table.focus()
-    movie_info = movie_table.item(selected_movie)
-    movie_title = movie_info['values'][0]
-    
-    rating_window = tk.Toplevel(window)
-    rating_window.title("Rate Movie")
-    
-    rating_label = ttk.Label(rating_window, text=f"Rate '{movie_title}':")
-    rating_label.pack(pady=10)
-    
-    rating_entry = ttk.Entry(rating_window, width=10)
-    rating_entry.pack(pady=10)
-    
-    submit_button = ttk.Button(rating_window, text="Submit", command=lambda: save_rating(movie_title, rating_entry.get()))
-    submit_button.pack(pady=10)
-
-    rating_window.mainloop()
-    
-def save_rating(movie_title, rating):
-    
-    try:
-        rating = float(rating)
-        if rating >= 1 or rating <= 5:
-            raise ValueError()
-        
-        movie_id = mean_ratings[mean_ratings['title'] == movie_title]['movieId'].iloc[0]
-        
-        new_rating = pd.DataFrame({'userId': [999], 'movieId': [movie_id], 'rating': [rating], 'timestamp': [int(time.time())]})
-        ratings = ratings.append(new_rating, ignore_index=True)
-        
-        ratings_pivot = movie_ratings.pivot_table(index='userId', columns='title', values='rating').fillna(0)
-        
-        movie_similarity = cosine_similarity(ratings_pivot)
-        
-        recommend_movies()
-        
-        tk.messagebox.showinfo("Success", "Rating saved successfully!")
-    except (ValueError, IndexError):
-        tk.messagebox.showerror("Error", "Invalid rating or movie not found!")
-
-    
+# Create the main window
 window = tk.Tk()
+window.title("My Application")
+window.geometry("800x600")
+window.configure(background="lightblue")
 
+# Create a logo label
+logo_label = ttk.Label(window, text="My Logo")
+logo_label.grid(row=0, column=0, padx=10, pady=10)
 
+# Create a user ID label
+user_id_label = ttk.Label(window, text="User ID")
+user_id_label.grid(row=1, column=0, padx=10, pady=10)
 
-window.title('Movie Recommendation System')
-window.geometry('600x600')
+# Create a user ID entry
+user_id_entry = ttk.Entry(window)
+user_id_entry.grid(row=1, column=1, padx=10, pady=10)
 
-genre_label = ttk.Label(window, text='SELECT MOVIES:')
-genre_label.pack(pady=10)
+# Create a login button
+login_button = ttk.Button(window, text="Login")
+login_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
 
-movie_entry = ttk.Entry(window, width=50)
-movie_entry.pack()
-movie_entry.bind("<KeyRelease>", suggest_movies)
-
-movie_label = ttk.Label(window, text='Suggest Movies: ')
-movie_label.pack(pady=10)
-
+# Create a listbox for movie suggestions
 movie_listbox = tk.Listbox(window, width=50)
-movie_listbox.pack()
-movie_listbox.bind("<ButtonRelease-1>", select_movie)
-movie_listbox.bind("<<ListboxSelect>>", select_movie,recommend_movies)
-genre_combobox = ttk.Combobox(window, width=50)
+movie_listbox.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
-rate_button = ttk.Button(window, text="Rate", command=rate_movie)
-rate_button.pack(pady=10, anchor='e')
-
-
-refresh_button = ttk.Button(window, text="Refresh", command=refresh_movies)
-refresh_button.pack(pady=10,anchor='e')
-
-reset_button = ttk.Button(window, text="RESET", command=reset_movies)
-reset_button.pack(pady=10,anchor='e')
-
-movie_table = ttk.Label(window, text='Recommended Movies: ')
-movie_table.pack(pady=10)
-movie_table = ttk.Treeview(window, columns=('Movie', 'Rating', 'Genres'), show='headings', height=20)
-
-movie_table.heading('Movie', text='Movie')
-movie_table.heading('Rating', text='Rating')
-movie_table.heading('Genres', text='Genres')
-movie_table.pack(pady=10)
-
-movie_table.column('Movie', width=300, anchor='center')
-movie_table.column('Rating', width=80, anchor='center')
-movie_table.column('Genres', width=200, anchor='center')
+# Create a treeview for recommended movies
+movie_treeview = ttk.Treeview(window, columns=('Movie', 'Rating', 'Genres'), show='headings', height=20)
+movie_treeview.heading('Movie', text='Movie')
+movie_treeview.heading('Rating', text='Rating')
+movie_treeview.heading('Genres', text='Genres')
+movie_treeview.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 
 window.mainloop()
-
