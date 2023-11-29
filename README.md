@@ -5,3 +5,10 @@ The MovieLens Recommender system is a movie recommendation system that uses coll
 The MovieLens Recommender system is capable of making various types of recommendations, such as personalized recommendations, popular recommendations, and new release recommendations. It can also provide explanations for its recommendations by showing similar movies that the user has liked in the past, or by highlighting certain features of a recommended movie that match the user's preferences.
 
 Overall, the MovieLens Recommender system is a powerful tool for movie enthusiasts who want to discover new movies that they might enjoy based on their past movie watching history. It can also be used by movie streaming services to provide personalized recommendations to their users, thereby increasing user engagement and satisfaction.
+
+<div style="display: flex; justify-content: center;">
+  <img src="img/1.png" alt="Login Path" width="300" height="200">
+  <img src="img/2.png" alt="Login Path" width="300" height="200">
+  <img src="img/3.png" alt="Login Path" width="300" height="200">
+</div>
+
